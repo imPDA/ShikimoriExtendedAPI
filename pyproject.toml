@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+dynamic = ["version"]
+name = "shikimori-extended-api"
+dependencies = [
+  "httpx~=0.25.2",
+  "pydantic~=2.5.2"
+]
+authors = [
+  {name = "Dmitry Patrushev", email = "impda@mail.ru"},
+]
+maintainers = [
+  {name = "Dmitry Patrushev", email = "impda@mail.ru"},
+]
+description = "Simple API for Shkimori website"
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["shikimori", "api"]
+#Homepage = "https://example.com"
+
+[tool.hatch.version]
+path = "src/shikimori_extended_api/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shikimori_extended_api"]
