@@ -3,7 +3,6 @@ import re
 from urllib.parse import urlencode
 
 import httpx
-from httpx import HTTPStatusError
 
 from .utils import Limiter
 from .enums import AnimeStatus
@@ -85,7 +84,7 @@ class ShikimoriExtendedAPI:
     async def get_current_user_info(self, token: ShikimoriToken) -> dict:
         try:
             info = await self.go(token).users.whoami.get()
-        except HTTPStatusError as err:
+        except httpx.HTTPStatusError as err:
             if err.response.status_code != 401:
                 raise
 
@@ -126,7 +125,7 @@ class ShikimoriExtendedAPI:
 
         try:
             return await request()
-        except HTTPStatusError as err:
+        except httpx.HTTPStatusError as err:
             if err.response.status_code != 429:
                 raise
 
