@@ -1,5 +1,6 @@
 import asyncio
 import re
+from typing import Self, Optional, Any
 from urllib.parse import urlencode
 
 import httpx
@@ -215,50 +216,75 @@ class Builder:
 
         return True
 
-    def __init__(self, client: Client, root: str = None):
+    def __init__(self, client: Client, root: str = None, *, method: str = None):
         self.client = client
         self.url = root
-        self.params = {}
-        self.headers = {}
-        self.method: str = ''
+        self.kwargs = {}
+        # self.params = {}
+        # self.headers = {}
+        self.method: str = method
 
-    def __getattr__(self, item: str):
-        match item.lower():
-            case 'get' | 'post' | 'patch' | 'put' | 'delete':  # HEAD, CONNECT, OPTIONS, TRACE
-                self.method = item.upper()
-            case 'id':
-                pass
-            case _:
-                self.url += f'/{item}'
+    def __getattr__(self, item: str) -> Self:
+        item = item.lower()
 
-        return self.__dict__.get(item, self)
+        if item in ['id', 'paste']:
+            # if `id` or `paste` -> do nothing, make a call after it to paste smth into url via `__call__`
+            return self
+
+        if item in ['get', 'post', 'patch', 'put', 'delete']:  # HEAD, CONNECT, OPTIONS, TRACE
+            # if method specified -> specify `self.method`
+            self.method = item
+            return self
+
+        # in all other cases just add a new portion to url path
+        new_builder = Builder(self.client, self.url + f'/{item}', method=self.method)
+        new_builder.kwargs = self.kwargs
+        return new_builder
 
     def __call__(
             self,
-            some_id: int = None,
-            **params
+            some_id: Any = None,
+            /,
+            **kwargs
     ) -> Client._request:  # noqa access to the protected member
+        # if a positional arg provided, treat it as an id and add to the url path
         if some_id:
-            if not isinstance(some_id, int):
-                return ValueError("ID must be an integer!")
             self.url += f'/{some_id}'
 
-        params = {k: v for k, v in params.items() if v}  # delete empty params first
+        kwargs = {k: v for k, v in kwargs.items() if v}  # delete empty
+        self.kwargs.update(kwargs)
 
         # session = params.pop('session', None)
-        self.headers.update(params.pop('headers', {}))
-        self.params.update(params)
+        # self.headers.update(params.pop('headers', {}))
+        # self.params.update(params)
 
         if self.method:
             # TODO refactor
             # if not self.is_endpoint_exists():
             #     raise
+
+            print(self.url)
+
             return self.client._request(  # noqa access to the protected member
                 self.method,
                 self.url,
                 # session=session or None,
-                headers=self.headers or None,
-                params=self.params or None,
+                # headers=self.headers or None,
+                # params=self.params or None,
+                **self.kwargs
             )
         else:
             return self
+
+
+if __name__ == '__main__':
+    client = Client(
+        application_name=...,
+        client_secret=...,
+        client_id=...,
+        redirect_uri=...
+    )
+
+    a = Builder(client, 'https://root.root')
+    b = a.using.builder.you.can.add.anything.to.the.root_url.AND.also.can.add.paste('some-id').to.the.path.get(headers={'a': 'b'})
+    print(b.url)
