@@ -8,12 +8,12 @@ TOKEN_ENDPOINT = SHIKIMORI_URL + '/oauth/token'
 API_ROOT = SHIKIMORI_URL + '/api'
 
 
-class Builder:
+class URL:
     def __init__(self, url: str):
         self.url = url
 
-    def add(self, path: str) -> Self:
-        return Builder(self.url + f'/{path}')
+    def _add(self, path: str) -> Self:
+        return URL(self.url + f'/{path}')
 
     def __getattr__(self, item: str) -> Self:
         if item.lower() in ['id', 'paste']:
@@ -21,12 +21,12 @@ class Builder:
             return self
 
         # in all other cases just add a new section to url
-        return self.add(item)
+        return self._add(item)
 
     def __call__(self, arg: Any = None, /, **kwargs) -> Self | str:
         # if a positional arg provided, add to the url path
         if arg:
-            return self.add(arg)
+            return self._add(arg)
 
         return f"{self.url}{'?' if kwargs else ''}{urlencode(kwargs)}"
 
@@ -34,6 +34,6 @@ class Builder:
         return self.url
 
 
-auth_endpoint = Builder(AUTH_ENDPOINT)
-token_endpoint = Builder(TOKEN_ENDPOINT)
-api_endpoint = Builder(API_ROOT)
+auth_endpoint = URL(AUTH_ENDPOINT)
+token_endpoint = URL(TOKEN_ENDPOINT)
+api_endpoint = URL(API_ROOT)

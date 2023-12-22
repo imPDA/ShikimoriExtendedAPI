@@ -115,19 +115,6 @@ class ShikimoriExtendedAPI:
     async def get_anime(self, anime_id: int):
         return await self.get(api_endpoint.animes.id(anime_id))
 
-    async def __request_again_on_2_many_requests_ex(self, request, retries: int = 0) -> dict:
-        MAX_RETRIES = 3
-        if retries >= MAX_RETRIES:
-            raise Exception(f"Too Many Requests: {MAX_RETRIES} retries")
-
-        try:
-            return await request()
-        except httpx.HTTPStatusError as err:
-            if err.response.status_code != 429:
-                raise
-
-            return await self.__request_again_on_2_many_requests_ex(request, retries + 1)
-
     # It can take a super long time to be executed!!! TODO think how it can be speed up
     async def fetch_total_watch_time(self, user_id: int) -> float:
         titles = await self.get_all_user_anime_rates(user_id)
@@ -144,8 +131,18 @@ class ShikimoriExtendedAPI:
         amount_of_episodes = [title['episodes'] for title in titles]
         return sum([duration * episodes for duration, episodes in zip(durations, amount_of_episodes)])
 
-    def log_in(self, login: str, password: str):
-        raise NotImplementedError
+    async def __request_again_on_2_many_requests_ex(self, request, retries: int = 0) -> dict:
+        MAX_RETRIES = 3
+        if retries >= MAX_RETRIES:
+            raise Exception(f"Too Many Requests: {MAX_RETRIES} retries")
+
+        try:
+            return await request()
+        except httpx.HTTPStatusError as err:
+            if err.response.status_code != 429:
+                raise
+
+            return await self.__request_again_on_2_many_requests_ex(request, retries + 1)
 
     async def refresh_tokens(self):
         raise NotImplementedError
