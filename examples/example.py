@@ -58,7 +58,7 @@ async def main():
     print("-" * 80)
 
     # А здесь информация будет получена успешно
-    print("Запрос к защищенному эндпоинту с токеном (go(token).users.whoami.get()):")
+    print("Запрос к защищенному эндпоинту с токеном:")
     print(await shiki_client.get(api_endpoint.users.whoami(), token=token))
     print("-" * 80)
 
