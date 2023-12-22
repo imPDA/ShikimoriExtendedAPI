@@ -1,12 +1,9 @@
 import asyncio
-import re
-from datetime import datetime
 from functools import partial
-from urllib.parse import urlencode
 
 import httpx
 
-from shikimori_extended_api.utils.url_builder import auth_endpoint, token_endpoint, api_endpoint
+from .endpoints import auth_endpoint, token_endpoint, api_endpoint
 from .utils import Limiter
 from .enums import AnimeStatus
 from .datatypes import ShikimoriToken
