@@ -1,6 +1,6 @@
 from .utils import URL
 
-SHIKIMORI_URL = 'https://shikimori.me'
+SHIKIMORI_URL = 'https://shikimori.one'
 
 AUTH_ENDPOINT = SHIKIMORI_URL + '/oauth/authorize'
 TOKEN_ENDPOINT = SHIKIMORI_URL + '/oauth/token'
