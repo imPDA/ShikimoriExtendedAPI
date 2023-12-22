@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from shikimori_extended_api import Client as ShikimoriClient
+from shikimori_extended_api.client import api_endpoint
 
 # 1) Создай приложение -> https://shikimori.me/oauth/applications
 
@@ -47,12 +48,12 @@ async def main():
 
     # Здесь ничего не будет выведено, т.к. это защищенный эндпоинт и нужен токен, но токен не указан
     print("Запрос к защищенному эндпоинту без токена:")
-    print(await shiki_client.go().users.whoami.get())
+    print(await shiki_client.get(api_endpoint.users.whoami()))
     print("-" * 80)
 
     # А здесь информация будет получена успешно
     print("Запрос к защищенному эндпоинту с токеном (go(token).users.whoami.get()):")
-    print(await shiki_client.go(token).users.whoami.get())
+    print(await shiki_client.get(api_endpoint.users.whoami(), token=token))
     print("-" * 80)
 
     # Кстати, то же самое можно получить через метод `get_current_user_info`

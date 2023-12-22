@@ -1,19 +1,15 @@
 import asyncio
 import re
-from typing import Self, Optional, Any
+from datetime import datetime
+from functools import partial
 from urllib.parse import urlencode
 
 import httpx
 
+from shikimori_extended_api.utils.url_builder import auth_endpoint, token_endpoint, api_endpoint
 from .utils import Limiter
 from .enums import AnimeStatus
 from .datatypes import ShikimoriToken
-
-SHIKIMORI_URL = 'https://shikimori.me'
-
-AUTH_ENDPOINT = SHIKIMORI_URL + '/oauth/authorize'
-GET_TOKEN_ENDPOINT = SHIKIMORI_URL + '/oauth/token'
-API_ROOT = SHIKIMORI_URL + '/api'
 
 
 class ShikimoriExtendedAPI:
@@ -41,19 +37,12 @@ class ShikimoriExtendedAPI:
             'response_type': 'code',
             'scope': ''
         }
-        return f"{AUTH_ENDPOINT}?{urlencode(q)}"
+
+        return auth_endpoint(**q)
 
     @limiter_5rps
     @limiter_90rpm
-    async def _request(
-            self,
-            method: str,
-            url: str,
-            # *,
-            # session: aiohttp.ClientSession = None,
-            # headers: dict = None,
-            **kwargs
-    ):
+    async def _request(self, method: str, url: str, **kwargs) -> dict:
         # print(f"[{datetime.now()}] {method} {url} {headers} {kwargs}")  # TODO logging
 
         headers = kwargs.pop('headers', None) or {}
@@ -67,8 +56,15 @@ class ShikimoriExtendedAPI:
 
             return response.json()
 
-    def go(self, token: ShikimoriToken = None):
-        return Builder(self, API_ROOT)(headers=token and {'Authorization': f'Bearer {token.access_token}'})
+    def get(self, url: str, *, token: ShikimoriToken = None, **kwargs):
+        if token:
+            kwargs.setdefault('headers', {}).update({'Authorization': f'Bearer {token.access_token}'})
+        return self._request('get', url, **kwargs)
+
+    def post(self, url: str, *, token: ShikimoriToken = None, **kwargs):
+        if token:
+            kwargs.setdefault('headers', {}).update({'Authorization': f'Bearer {token.access_token}'})
+        return self._request('post', url, **kwargs)
 
     async def get_access_token(self, auth_code: str) -> ShikimoriToken:
         data = {
@@ -78,24 +74,23 @@ class ShikimoriExtendedAPI:
             'code': auth_code,
             'redirect_uri': self.redirect_uri
         }
-        json_response = await self._request('POST', GET_TOKEN_ENDPOINT, data=data)
 
-        return ShikimoriToken(**json_response)
+        return ShikimoriToken(**await self.post(token_endpoint(), data=data))
 
     async def get_current_user_info(self, token: ShikimoriToken) -> dict:
         try:
-            info = await self.go(token).users.whoami.get()
+            info = await self.get(api_endpoint.users.whoami(), token=token)
         except httpx.HTTPStatusError as err:
             if err.response.status_code != 401:
                 raise
 
             await self.refresh_tokens()
-            info = await self.go(token).users.whoami.get()
+            info = await self.get(api_endpoint.users.whoami(), token=token)
 
         return info
 
     async def get_user_info(self, user_id: int) -> dict:
-        return await self.go().users.id(user_id).info.get()
+        return await self.get(api_endpoint.users.id(user_id).info())
 
     async def get_all_user_anime_rates(
             self,
@@ -109,15 +104,16 @@ class ShikimoriExtendedAPI:
 
         L, p, rates = 100, 1, []  # limit per request, current page, list of rates
         while True:
-            r_ = await self.go().users.id(user_id).anime_rates(limit=L, status=status.value, censored=censored, page=p)\
-                .get()
+            r_ = await self.get(
+                api_endpoint.users.id(user_id).anime_rates(limit=L, status=status.value, censored=censored, page=p)
+            )
             rates.extend(r_[:L])
             if len(r_) <= L:
                 return rates
             p += 1
 
     async def get_anime(self, anime_id: int):
-        return await self.go().animes.id(anime_id)
+        return await self.get(api_endpoint.animes.id(anime_id))
 
     async def __request_again_on_2_many_requests_ex(self, request, retries: int = 0) -> dict:
         MAX_RETRIES = 3
@@ -139,7 +135,7 @@ class ShikimoriExtendedAPI:
         async with asyncio.TaskGroup() as group:
             for title in titles:
                 anime_info = group.create_task(
-                    self.__request_again_on_2_many_requests_ex(self.go().animes.id(title['anime']['id']).get),
+                    self.__request_again_on_2_many_requests_ex(partial(self.get, api_endpoint.animes.id(title['anime']['id']))),
                     name=f"ID{title['anime']['id']}"
                 )
                 tasks.append(anime_info)
@@ -156,135 +152,3 @@ class ShikimoriExtendedAPI:
 
 
 Client = ShikimoriExtendedAPI
-
-
-# TODO review Builder
-class Builder:
-    # TODO refactor
-    def is_endpoint_exists(self) -> bool:
-        resources = {
-            'achievements': None,
-            'animes': {
-                False: {
-                    '': {},
-                },
-                True: {
-                    '': {},
-                    'roles': {},
-                    'similar': {},
-                    'related': {},
-                    'screenshots': {},
-                    'franchise': {},
-                    'external_links': {},
-                    'topics': {},
-                },
-            },
-            'users': {
-                False: {
-                    '': {},
-                    'whoami': {},
-                    'sign_out': {},
-                },
-                True: {
-                    '': {},
-                    'info': {},
-                    'friends': {},
-                    'clubs': {},
-                    'anime_rates': {},
-                    'manga_rates': {},
-                    'favourites': {},
-                    'messages': {},
-                    'unread_messages': {},
-                    'history': {},
-                    'bans': {},
-                }
-            }
-        }
-
-        pattern = r'https:\/\/shikimori\.me\/api\/([a-z_]*)(?:\/(\d+))?(?:\/([a-z_]*))?'
-        groups = re.match(pattern, self.url).groups()
-        resource = groups[0]
-        id_ = bool(groups[1])
-        path = groups[2] if groups[2] else ''
-        try:
-            flag = path in resources[resource][id_]
-        except KeyError as e:
-            raise KeyError(f'Не найдено пути: {e}')
-        else:
-            if not flag:
-                raise KeyError(f'Не найдено пути: {path}')
-
-        return True
-
-    def __init__(self, client: Client, root: str = None, *, method: str = None):
-        self.client = client
-        self.url = root
-        self.kwargs = {}
-        # self.params = {}
-        # self.headers = {}
-        self.method: str = method
-
-    def __getattr__(self, item: str) -> Self:
-        item = item.lower()
-
-        if item in ['id', 'paste']:
-            # if `id` or `paste` -> do nothing, make a call after it to paste smth into url via `__call__`
-            return self
-
-        if item in ['get', 'post', 'patch', 'put', 'delete']:  # HEAD, CONNECT, OPTIONS, TRACE
-            # if method specified -> specify `self.method`
-            self.method = item
-            return self
-
-        # in all other cases just add a new portion to url path
-        new_builder = Builder(self.client, self.url + f'/{item}', method=self.method)
-        new_builder.kwargs = self.kwargs
-        return new_builder
-
-    def __call__(
-            self,
-            some_id: Any = None,
-            /,
-            **kwargs
-    ) -> Client._request:  # noqa access to the protected member
-        # if a positional arg provided, treat it as an id and add to the url path
-        if some_id:
-            self.url += f'/{some_id}'
-
-        kwargs = {k: v for k, v in kwargs.items() if v}  # delete empty
-        self.kwargs.update(kwargs)
-
-        # session = params.pop('session', None)
-        # self.headers.update(params.pop('headers', {}))
-        # self.params.update(params)
-
-        if self.method:
-            # TODO refactor
-            # if not self.is_endpoint_exists():
-            #     raise
-
-            print(self.url)
-
-            return self.client._request(  # noqa access to the protected member
-                self.method,
-                self.url,
-                # session=session or None,
-                # headers=self.headers or None,
-                # params=self.params or None,
-                **self.kwargs
-            )
-        else:
-            return self
-
-
-if __name__ == '__main__':
-    client = Client(
-        application_name=...,
-        client_secret=...,
-        client_id=...,
-        redirect_uri=...
-    )
-
-    a = Builder(client, 'https://root.root')
-    b = a.using.builder.you.can.add.anything.to.the.root_url.AND.also.can.add.paste('some-id').to.the.path.get(headers={'a': 'b'})
-    print(b.url)
