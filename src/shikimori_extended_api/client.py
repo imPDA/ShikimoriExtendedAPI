@@ -1,9 +1,10 @@
 import asyncio
 from functools import partial
+from typing import List
 
 import httpx
 
-from .endpoints import auth_endpoint, token_endpoint, api_endpoint
+from .endpoints import auth_endpoint, token_endpoint, api_endpoint, graphql_endpoint
 from .utils import Limiter
 from .enums import AnimeStatus
 from .datatypes import ShikimoriToken
@@ -89,49 +90,122 @@ class ShikimoriExtendedAPI:
     async def get_user_info(self, user_id: int) -> dict:
         return await self.get(api_endpoint.users.id(user_id).info())
 
-    async def get_all_user_anime_rates(
+    async def get_all_user_rates(
             self,
             user_id: int,
             *,
-            status: AnimeStatus | str = None,
-            censored: bool = None
+            status: List[AnimeStatus] | AnimeStatus = None,
+            censored: bool = False
     ) -> list:
-        if not isinstance(status, AnimeStatus):
-            status = AnimeStatus(status)
+        if not isinstance(status, list):
+            status = [status, ]
 
-        L, p, rates = 100, 1, []  # limit per request, current page, list of rates
-        while True:
-            r_ = await self.get(
-                api_endpoint.users.id(user_id).anime_rates(limit=L, status=status.value, censored=censored, page=p)
-            )
-            rates.extend(r_[:L])
-            if len(r_) <= L:
-                return rates
-            p += 1
+        rates = []
+        for particular_status in status:
+            limit, page = 100, 1  # limit per request, current page
+            while True:
+                r_ = await self.get(
+                    api_endpoint.users.id(user_id).anime_rates(
+                        limit=limit,
+                        status=particular_status and particular_status.value,
+                        censored=str(censored).lower(),
+                        page=page
+                    )
+                )
+                rates.extend(r_[:limit])
+                if len(r_) <= limit:
+                    break
+                page += 1
+        return rates
 
     async def get_anime(self, anime_id: int):
         return await self.get(api_endpoint.animes.id(anime_id))
 
-    # It can take a super long time to be executed!!! TODO think how it can be speed up
-    async def fetch_total_watch_time(self, user_id: int) -> float:
-        titles = await self.get_all_user_anime_rates(user_id)
+    async def _get_titles(self, titles_ids: List[int]) -> List[dict]:
         tasks = []
         async with asyncio.TaskGroup() as group:
-            for title in titles:
+            for title_id in titles_ids:
                 anime_info = group.create_task(
-                    self.__request_again_on_2_many_requests_ex(partial(self.get, api_endpoint.animes.id(title['anime']['id']))),
-                    name=f"ID{title['anime']['id']}"
+                    self.__request_again_on_2_many_requests_ex(
+                        partial(self.get, api_endpoint.animes.id(title_id)())),
+                    name=f"ID:{title_id}"
                 )
                 tasks.append(anime_info)
+        return [task.result() for task in tasks]
 
-        durations = [task.result()['duration'] or 23 for task in tasks]  # 23mim - standard duration of an anime episode
-        amount_of_episodes = [title['episodes'] for title in titles]
-        return sum([duration * episodes for duration, episodes in zip(durations, amount_of_episodes)])
+    # TODO rework with any library
+    @staticmethod
+    def _build_graphql_query_for_total_watch_time(user_id: int, status: AnimeStatus, page: int) -> str:
+        return f"""
+        {{
+          userRates(userId: "{user_id}", targetType: Anime, status: {status.value}, limit: 50, page: {page}) {{
+            score
+            status
+            episodes
+            rewatches
+            anime {{
+              english
+              duration
+              episodes
+            }}
+          }}
+        }}
+        """
+
+    async def fetch_total_watch_time_graphql(self, user_id: int) -> float:
+        statuses = [
+            AnimeStatus.WATCHING,
+            AnimeStatus.COMPLETED,
+            AnimeStatus.DROPPED,
+            AnimeStatus.ON_HOLD,
+            AnimeStatus.REWATCHING
+        ]
+
+        scores = []
+
+        for status in statuses:
+            page = 1
+            while True:
+                graph_query = self._build_graphql_query_for_total_watch_time(user_id, status, page)
+                response = await self.post(graphql_endpoint(), data={'query': graph_query})
+                scores.extend(response['data']['userRates'])
+
+                if not response['data']['userRates']:
+                    break
+
+                page += 1
+
+        return sum([score['episodes'] * score['anime']['duration'] * (score['rewatches'] + 1) for score in scores])
+
+    # It can take a super long time to be executed!!! TODO rework with graphql
+    async def fetch_total_watch_time(self, user_id: int, *, accurate: bool = False) -> float:
+        # get all user rates
+        user_rates = await self.get_all_user_rates(
+            user_id,
+            status=[  # get all rates w/o `planned` titles, because planned have 0 finished episodes
+                AnimeStatus.WATCHING,
+                AnimeStatus.COMPLETED,
+                AnimeStatus.DROPPED,
+                AnimeStatus.ON_HOLD,
+                AnimeStatus.REWATCHING
+            ]
+        )
+
+        if accurate:
+            # get complete info about all titles watched (including accurate duration)
+            titles_info = await self._get_titles([rate['anime']['id'] for rate in user_rates])
+            durations = [title['duration'] or 23 for title in titles_info]  # 23min - standard duration of an episode
+            finished_episodes = [rate['episodes'] for rate in user_rates]
+            return sum([dur * episodes for dur, episodes in zip(durations, finished_episodes)])
+        else:
+            # assume every episode = 23min, so we get coarse total watch time
+            finished_episodes = [rate['episodes'] for rate in user_rates]
+            return sum(map(lambda x: x * 23, finished_episodes))
 
     async def __request_again_on_2_many_requests_ex(self, request, retries: int = 0) -> dict:
         MAX_RETRIES = 3
         if retries >= MAX_RETRIES:
-            raise Exception(f"Too Many Requests: {MAX_RETRIES} retries")
+            raise Exception(f"Too Many Requests: {MAX_RETRIES} retries")  # TODO implement custom exception
 
         try:
             return await request()

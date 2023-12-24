@@ -1,3 +1,4 @@
 .idea
 venv
 examples/.env
+examples/3_graphql_example.py
