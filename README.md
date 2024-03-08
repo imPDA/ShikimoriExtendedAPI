@@ -1,27 +1,27 @@
 ## Shikimori Extended API
-Оболочка для API сайта [shikimori.me](https://shikimori.me) на языке Python.
-<br>_Ссылка на [официальную документацию](https://shikimori.me/api/doc) по работе с API сайта._
+Оболочка для API сайта [shikimori.one](https://shikimori.one) на языке Python.
+
+>_RTFM! Ссылка на [официальную документацию](https://shikimori.one/api/doc) по работе с API сайта.
+Внимательно ознакомьтесь с ней!_
 
 ### Особенности библиотеки
 
-- встроенные лимитеры на 5rps и 90rpm, согласно документации API
-- библиотека полностью асинхронна (httpx)
+- встроенные лимитеры на 5rps и 90rpm, согласно документации ([тык](https://shikimori.one/api/doc/2.0#:~:text=Restrictions,5rps%20and%2090rpm)), чтобы не попасть на бан за игнор таймаутов;
+- автоповтор запроса если запрос всё-таки попал на таймаут;
+- библиотека полностью асинхронна (на httpx);
+- интересная фича с билдером url (замена ручного вбивания строк в запросы).
 
-### Простые use-case добавлены в папку с примерами
-
-- Как получить токены доступа и доступ к защищенным эндпоинтам - [здесь](./examples/app_example.py)
+### Инструкции см. в [папке с примерами](./examples)
+- [Как правильно использовать встроенный билдер url](./examples/1_urls.py)
+- [Пример базового использования](./examples/2_basic_usage.py)
 
 [//]: # (- Доступ к незащищенным эндпоинтам, где не требуется создания приложения - скоро)
 
-### Установка
+### Установка (poetry)
 ```shell
-pip install git+https://github.com/imPDA/shikimoriextendedapi.git@latest
+poetry add git+https://github.com/imPDA/shikimoriextendedapi.git
 ```
-<br>Не забудь добавить переменные в окружение!
 
-## ⚠️ In-development state
-- Everything can change during development
-- I`m using it for my own Discord bots, so I prioritize my own needs
-
-☕ Please do not hesitate to contact me if you interested in cooperation, have any ideas, need help<br>
-☕ Discord: impda
+### ⚠️ В разработке
+По любым вопросам быстрее всего отвечу в Discord.
+<br><img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" width=15/><b> imPDA</b>
