@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "shikimoriextendedapi"
+version = "0.2.0"
+authors = [
+  "Dmitry Patrushev <impda@mail.ru>"
+]
+maintainers = [
+  "Dmitry Patrushev <impda@mail.ru>"
+]
+description = "API for https://shkimori.one"
+readme = "README.md"
+license = "MIT"
+keywords = ["shikimori", "api"]
+homepage = "https://github.com/imPDA/ShikimoriExtendedAPI"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+httpx = "^0.27.0"
+pydantic = "^2.6.3"
+
+[tool.poetry.group.dev.dependencies]
+django-environ = "^0.11.2"
+
+[build-system]
+requires = ["poetry-core", "setuptools"]
+build-backend = "poetry.core.masonry.api"
