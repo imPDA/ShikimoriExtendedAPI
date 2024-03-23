@@ -25,7 +25,7 @@ class URL:
         """Alternative to id() and paste()"""
         return self._add(arg)
 
-    def __call__(self, arg: Any = None, /, **kwargs) -> str:
+    def __call__(self, /, **kwargs) -> str:
         return f"{self.url}{'?' if kwargs else ''}{urlencode(skip_none(kwargs))}"
 
     def __str__(self) -> str:
