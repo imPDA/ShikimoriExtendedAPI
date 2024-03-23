@@ -1,6 +1,6 @@
 import asyncio
 from functools import partial
-from typing import List
+from typing import List, Optional
 
 import httpx
 
@@ -18,8 +18,8 @@ class ShikimoriExtendedAPI:
             self,
             *,
             application_name: str,
-            client_id: str = None,
-            client_secret: str = None,
+            client_id: Optional[str] = None,
+            client_secret: Optional[str] = None,
             redirect_uri: str = 'urn:ietf:wg:oauth:2.0:oob'
     ):
         self.application_name = application_name
@@ -54,12 +54,12 @@ class ShikimoriExtendedAPI:
 
             return response.json()
 
-    def get(self, url: str, *, token: ShikimoriToken = None, **kwargs):
+    def get(self, url: str, *, token: Optional[ShikimoriToken] = None, **kwargs):
         if token:
             kwargs.setdefault('headers', {}).update({'Authorization': f'Bearer {token.access_token}'})
         return self._request('get', url, **kwargs)
 
-    def post(self, url: str, *, token: ShikimoriToken = None, **kwargs):
+    def post(self, url: str, *, token: Optional[ShikimoriToken] = None, **kwargs):
         if token:
             kwargs.setdefault('headers', {}).update({'Authorization': f'Bearer {token.access_token}'})
         return self._request('post', url, **kwargs)
@@ -94,9 +94,10 @@ class ShikimoriExtendedAPI:
             self,
             user_id: int,
             *,
-            status: List[AnimeStatus] | AnimeStatus = None,
+            status: List[AnimeStatus] | AnimeStatus | None = None,
             censored: bool = False
     ) -> list:
+        status = status or []
         if not isinstance(status, list):
             status = [status, ]
 
@@ -110,7 +111,7 @@ class ShikimoriExtendedAPI:
                         status=particular_status and particular_status.value,
                         censored=str(censored).lower(),
                         page=page
-                    )
+                    )()
                 )
                 rates.extend(r_[:limit])
                 if len(r_) <= limit:
@@ -119,7 +120,7 @@ class ShikimoriExtendedAPI:
         return rates
 
     async def get_anime(self, anime_id: int):
-        return await self.get(api_endpoint.animes.id(anime_id))
+        return await self.get(api_endpoint.animes.id(anime_id)())
 
     async def _get_titles(self, titles_ids: List[int]) -> List[dict]:
         tasks = []
