@@ -25,12 +25,14 @@ class URL:
         """Alternative to id() and paste()"""
         return self._add(arg)
 
-    def __call__(self, arg: Any = None, /, **kwargs) -> Self | str:
-        # if a positional arg provided, add to the url path
-        if arg:
-            return self._add(arg)
-
+    def __call__(self, arg: Any = None, /, **kwargs) -> str:
         return f"{self.url}{'?' if kwargs else ''}{urlencode(skip_none(kwargs))}"
 
     def __str__(self) -> str:
         return self.url
+
+    def id(self, id: int):
+        return self._add(str(id))
+    
+    def paste(self, arg: str):
+        return self._add(arg)
