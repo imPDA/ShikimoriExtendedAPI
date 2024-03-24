@@ -1,38 +1,54 @@
-from typing import Any, Self
+from typing import Self
 from urllib.parse import urlencode
 
 
 def skip_none(kwargs: dict) -> dict:
     return {k: v for k, v in kwargs.items() if v is not None}
 
-
-class URL:
-    def __init__(self, url: str):
+class BaseURL:   
+    def __init__(self, url: str) -> None:
         self.url = url
 
-    def _add(self, path: str) -> Self:
-        return URL(self.url + f'/{path}')
-
-    def __getattr__(self, item: str) -> Self:
-        if item.lower() in ['id', 'paste']:
-            # if `id` or `paste` -> do nothing, make a call after it to paste smth into url via `__call__`
-            return self
-
-        # in all other cases just add a new section to url
-        return self._add(item)
-
-    def __getitem__(self, arg):
-        """Alternative to id() and paste()"""
-        return self._add(arg)
-
-    def __call__(self, /, **kwargs) -> str:
+    def __call__(self, **kwargs) -> str:
         return f"{self.url}{'?' if kwargs else ''}{urlencode(skip_none(kwargs))}"
 
     def __str__(self) -> str:
         return self.url
 
-    def id(self, id: int):
-        return self._add(str(id))
+
+class URL(BaseURL):
+    def _add(self, path: str) -> Self:
+        self.url += f'/{path}'
+        return self
     
-    def paste(self, arg: str):
+    def __getattr__(self, item: str) -> Self:
+        # add a new section to url
+        return self._add(item)
+
+    def __getitem__(self, arg) -> Self:
+        """Alternative to id() and paste()"""
+        return self._add(arg)
+
+    def id_(self, id_: int) -> Self:
+        return self._add(str(id_))
+    
+    def paste(self, arg: str) -> Self:
+        return self._add(arg)
+
+class EndpointURL(BaseURL):
+    def _add(self, path: str) -> URL:
+        return URL(self.url + f'/{path}')
+        
+    def __getattr__(self, item: str) -> URL:
+        # add a new section to url
+        return self._add(item)
+
+    def __getitem__(self, arg) -> URL:
+        """Alternative to id() and paste()"""
+        return self._add(arg)
+
+    def id_(self, id_: int) -> URL:
+        return self._add(str(id_))
+    
+    def paste(self, arg: str) -> URL:
         return self._add(arg)
