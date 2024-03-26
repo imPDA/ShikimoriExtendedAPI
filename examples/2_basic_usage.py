@@ -41,12 +41,12 @@ async def main():
 
     # Здесь ничего не будет выведено, т.к. токен не указан
     print("Запрос к защищенному эндпоинту без токена:")
-    print(await shiki_client.get(api_endpoint.users.whoami()))
+    print(await shiki_client.get(api_endpoint.users.whoami))
     print("-" * 80)
 
     # А здесь информация будет получена успешно
     print("Запрос к защищенному эндпоинту с токеном:")
-    print(await shiki_client.get(api_endpoint.users.whoami(), token=token))
+    print(await shiki_client.get(api_endpoint.users.whoami, token=token))
     print("-" * 80)
 
     # Без токена можно получить доступ к незащищенным эндопоинтам

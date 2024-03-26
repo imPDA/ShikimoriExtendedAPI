@@ -19,13 +19,13 @@ url = api_endpoint.users.id(272747)()  # imPDA
 
 if __name__ == '__main__':
     # GET /api/users/whoami	Show current user's brief info
-    print(f"{api_endpoint.users.whoami() = }")
+    print(f"{str(api_endpoint.users.whoami) = }")
 
-    # GET /api/users/:id    Show an user
-    print(f"{api_endpoint.users.id(272747)() = }")
+    # GET /api/users/:id    Show a user
+    print(f"{str(api_endpoint.users.id(272747)) = }")
 
     # GET /api/animes	List animes
-    print(f"{api_endpoint.animes() = }")
+    print(f"{str(api_endpoint.animes) = }")
 
     # GET /api/animes/:id	Show an anime
-    print(f"{api_endpoint.animes.id(31240)() = }")
+    print(f"{str(api_endpoint.animes.id(31240)) = }")
