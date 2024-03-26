@@ -110,10 +110,12 @@ class ShikimoriExtendedAPI:
             while True:
                 r_ = await self.get(
                     api_endpoint.users.id(user_id).anime_rates,
-                    limit=limit,
-                    status=particular_status and particular_status.value,
-                    censored=str(censored).lower(),
-                    page=page
+                    params={
+                        'limit': limit,
+                        'status': particular_status and particular_status.value,
+                        'censored': str(censored).lower(),
+                        'page': page
+                    }
                 )
                 rates.extend(r_[:limit])
                 if len(r_) <= limit:
