@@ -19,8 +19,8 @@ class ShikimoriExtendedAPI:
             self,
             *,
             application_name: str,
-            client_id: str = None,
-            client_secret: str = None,
+            client_id: Optional[str] = None,
+            client_secret: Optional[str] = None,
             redirect_uri: str = 'urn:ietf:wg:oauth:2.0:oob'
     ):
         self.application_name = application_name
@@ -98,9 +98,10 @@ class ShikimoriExtendedAPI:
             self,
             user_id: int,
             *,
-            status: List[AnimeStatus] | AnimeStatus = None,
+            status: List[AnimeStatus] | AnimeStatus | None = None,
             censored: bool = False
     ) -> list:
+        status = status or []
         if not isinstance(status, list):
             status = [status, ]
 
@@ -124,7 +125,7 @@ class ShikimoriExtendedAPI:
         return rates
 
     async def get_anime(self, anime_id: int):
-        return await self.get(api_endpoint.animes.id(anime_id))
+        return await self.get(api_endpoint.animes.id(anime_id)())
 
     async def _get_titles(self, titles_ids: List[int]) -> List[dict]:
         tasks = []
