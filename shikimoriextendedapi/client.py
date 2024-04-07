@@ -1,11 +1,12 @@
 import asyncio
 from functools import partial
-from typing import List, Optional
+from typing import List
+from urllib.parse import urlencode
 
 import httpx
 
 from .endpoints import auth_endpoint, token_endpoint, api_endpoint, graphql_endpoint
-from .utils import Limiter
+from .utils import Limiter, URL
 from .enums import AnimeStatus
 from .datatypes import ShikimoriToken
 
@@ -36,7 +37,7 @@ class ShikimoriExtendedAPI:
             'scope': ''
         }
 
-        return auth_endpoint(**q)
+        return f"{auth_endpoint}?{urlencode(q)}"
 
     @limiter_5rps
     @limiter_90rpm
@@ -54,15 +55,18 @@ class ShikimoriExtendedAPI:
 
             return response.json()
 
-    def get(self, url: str, *, token: Optional[ShikimoriToken] = None, **kwargs):
+    async def get(self, url: str | URL, *, token: ShikimoriToken = None, **kwargs) -> dict:
+        url = str(url)
         if token:
             kwargs.setdefault('headers', {}).update({'Authorization': f'Bearer {token.access_token}'})
-        return self._request('get', url, **kwargs)
+        return await self._request('get', url, **kwargs)
 
-    def post(self, url: str, *, token: Optional[ShikimoriToken] = None, **kwargs):
+    async def post(self, url: str | URL, *, token: ShikimoriToken = None, **kwargs) -> dict:
+        url = str(url)
         if token:
             kwargs.setdefault('headers', {}).update({'Authorization': f'Bearer {token.access_token}'})
-        return self._request('post', url, **kwargs)
+
+        return await self._request('post', url, **kwargs)
 
     async def get_access_token(self, auth_code: str) -> ShikimoriToken:
         data = {
@@ -73,22 +77,22 @@ class ShikimoriExtendedAPI:
             'redirect_uri': self.redirect_uri
         }
 
-        return ShikimoriToken(**await self.post(token_endpoint(), data=data))
+        return ShikimoriToken(**await self.post(token_endpoint, data=data))
 
     async def get_current_user_info(self, token: ShikimoriToken) -> dict:
         try:
-            info = await self.get(api_endpoint.users.whoami(), token=token)
+            info = await self.get(api_endpoint.users.whoami, token=token)
         except httpx.HTTPStatusError as err:
             if err.response.status_code != 401:
                 raise
 
             await self.refresh_tokens()
-            info = await self.get(api_endpoint.users.whoami(), token=token)
+            info = await self.get(api_endpoint.users.whoami, token=token)
 
         return info
 
     async def get_user_info(self, user_id: int) -> dict:
-        return await self.get(api_endpoint.users.id(user_id).info())
+        return await self.get(api_endpoint.users.id(user_id).info)
 
     async def get_all_user_rates(
             self,
@@ -106,12 +110,13 @@ class ShikimoriExtendedAPI:
             limit, page = 100, 1  # limit per request, current page
             while True:
                 r_ = await self.get(
-                    api_endpoint.users.id(user_id).anime_rates(
-                        limit=limit,
-                        status=particular_status and particular_status.value,
-                        censored=str(censored).lower(),
-                        page=page
-                    )()
+                    api_endpoint.users.id(user_id).anime_rates,
+                    params={
+                        'limit': limit,
+                        'status': particular_status and particular_status.value,
+                        'censored': str(censored).lower(),
+                        'page': page
+                    }
                 )
                 rates.extend(r_[:limit])
                 if len(r_) <= limit:
@@ -128,7 +133,7 @@ class ShikimoriExtendedAPI:
             for title_id in titles_ids:
                 anime_info = group.create_task(
                     self.__request_again_on_2_many_requests_ex(
-                        partial(self.get, api_endpoint.animes.id(title_id)())),
+                        partial(self.get, api_endpoint.animes.id(title_id))),
                     name=f"ID:{title_id}"
                 )
                 tasks.append(anime_info)
@@ -168,7 +173,7 @@ class ShikimoriExtendedAPI:
             page = 1
             while True:
                 graph_query = self._build_graphql_query_for_total_watch_time(user_id, status, page)
-                response = await self.post(graphql_endpoint(), data={'query': graph_query})
+                response = await self.post(graphql_endpoint, data={'query': graph_query})
                 scores.extend(response['data']['userRates'])
 
                 if not response['data']['userRates']:
