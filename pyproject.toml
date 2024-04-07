@@ -12,6 +12,10 @@ readme = "README.md"
 license = "MIT"
 keywords = ["shikimori", "api"]
 homepage = "https://github.com/imPDA/ShikimoriExtendedAPI"
+exclude = [
+  "examples",
+  "tests"
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -20,6 +24,7 @@ pydantic = "^2.6.3"
 
 [tool.poetry.group.dev.dependencies]
 django-environ = "^0.11.2"
+pytest = "^8.1.1"
 
 [build-system]
 requires = ["poetry-core", "setuptools"]
