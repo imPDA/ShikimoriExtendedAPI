@@ -1,0 +1,78 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      Authorization:
+      - DUMMY
+      User-Agent:
+      - DUMMY
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - shikimori.one
+    method: GET
+    uri: https://shikimori.one/api/users/whoami
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAA5WTy2rDMBAA/2Wvda2HZdnRJRT6AT30HpRETYQtOUhy6hDy711jCu3BAYFOZjWa
+        hfEd7BEUb3gjmgK8PXReOwMKrPt4f4MC9FUnHfDDOaVLVIQcTRzLeLaddUOw5eANibeYjCNjNCGS
+        SbRk4ZUXf9qyupW0opuaI8w6fUL4HSYmaQ4Tx1ehExNtFuuJ4NRmabVPrKTIkZJifb+89Z5tV/Ec
+        p4qvOzGZQ2JyhfQooNcx7QbfW292OiGVUy5eKZ7NJ2sUqxVjpajEC60UpRjRGPo/b/8v8bfaJWI/
+        9n0B0Uw473Rv8PK32Ueb5sDnnjHna1ceBkfssdkI2UgqcWhvQzqjE6iF8IWc3c3oEOdfBZWHw0xT
+        EEZ4/ACQMmRUQgMAAA==
+    headers:
+      CF-Cache-Status:
+      - DYNAMIC
+      CF-RAY:
+      - 871d93481eae5b81-VIE
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 09 Apr 2024 21:26:25 GMT
+      NEL:
+      - '{"success_fraction":0,"report_to":"cf-nel","max_age":604800}'
+      Report-To:
+      - '{"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=bkx8fJ6bDEC%2FXHluoBnclnMIDE8VrfBnay4NGxRmqHaC%2FvDgBeKc%2FOCFquh8ZuhYH0ICDqpPfNYyqzThG53b365%2FjBgwUuM%2FNqpmO%2Bsg%2Bd%2FYK8g%2FnyaS3BeEHAMOTGTQ"}],"group":"cf-nel","max_age":604800}'
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      alt-svc:
+      - h3=":443"; ma=86400
+      etag:
+      - W/"7e3ae3de75f236b8e06186b879a5fc0e"
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      vary:
+      - Accept, Origin
+      x-content-type-options:
+      - nosniff
+      x-download-options:
+      - noopen
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-request-id:
+      - eaab065c-bc6c-4182-b705-23c3a72559fa
+      x-runtime:
+      - '0.015255'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+version: 1
