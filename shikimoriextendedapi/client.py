@@ -1,6 +1,6 @@
 import asyncio
 from functools import partial
-from typing import List
+from typing import List, Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -125,7 +125,7 @@ class ShikimoriExtendedAPI:
         return rates
 
     async def get_anime(self, anime_id: int):
-        return await self.get(api_endpoint.animes.id(anime_id)())
+        return await self.get(api_endpoint.animes.id(anime_id))
 
     async def _get_titles(self, titles_ids: List[int]) -> List[dict]:
         tasks = []
