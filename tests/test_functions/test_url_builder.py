@@ -1,6 +1,6 @@
 import pytest
 
-from src.shikimoriextendedapi.shikimoriextendedapi.endpoints import (
+from shikimoriextendedapi.endpoints import (
     SHIKIMORI_URL,
     URL,
     api_endpoint
